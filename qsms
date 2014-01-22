@@ -1,0 +1,98 @@
+#! /usr/bin/env bash
+
+# Send an SMS message to one or more recipients via the commandline 
+# via SailfishOS 
+# Usage: qsms "The message" "+4412345678" "0207160 2888"...
+# newfile is optional and will always have .jpg as a file type
+
+# Check to see that at least one parameter has been passed
+if [ $# -lt 2 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ] 
+then
+    echo ""
+    echo "qSMS - a command line SMS tool"
+    echo "------------------------------"
+    echo ""
+    echo "Usage: qsms \"Your message\" \"tel no\" [\"another tel no\"]"
+    echo "This will send your message to each of the telephone numbers"
+    echo ""
+    echo "The message must be a single string. Use \n for new lines."
+    echo "Telephone numbers can be local (ie \"07768345678\") or"
+    echo "internationally formatted (ie \"+447768345678\")."
+    echo ""
+    echo "Roland Whitehead, http://quru.com, January 2014"
+    echo ""
+    echo ""
+    exit 1
+fi
+
+declare -i itsGood=1
+
+function checkPattern {
+    # check the number $1 ($0 is alays the function name)
+    if [[ "$1" =~ "^\+?[0-9\ ]*$" ]]
+    then
+	return 0
+    else
+	return 1
+    fi
+}
+
+# Get the message
+theMessage="$1"
+# Clear out the first parameter
+shift
+
+# Loop through the rest of the parameters, checking each and sending it out
+declare -i countSent=0
+declare -i countFailed=0
+while [ -n "$1" ]
+  do
+    theNumber="$1"
+    if checkPattern $theNumber
+    then
+	#echo "Sending $theMessage to $theNumber"
+	dbus-send --system --print-reply --dest=org.ofono /ril_0 org.ofono.MessageManager.SendMessage string:"$theNumber" string:"$theMessage"
+	countSent=$countSent+1
+     else
+	echo "The number $theNumber is incorrectly formatted."
+	countFailed=$countFailed+1
+     fi
+    shift
+done
+
+# Give feedback
+if [ $countSent -gt 1 ]
+then
+    goodMsg="$countSent messages sent"
+else
+    if [ $countSent = 0 ]
+then
+	goodMsg="No messages sent"
+    else
+	goodMsg="1 message sent"
+    fi
+fi
+
+if [ $countFailed = 1 ]
+then
+    baddMsg="1 message failed"
+else
+    badMsg="$countSent messages failed"
+fi
+
+
+if [ $countFailed -ne 0 ]
+then
+    if [ $countSent -ne 0 ]
+then
+	echo "$goodMsg. $badMsg."
+	exit 0
+    else
+	echo "$badMsg"
+	exit 0
+    fi
+else
+    echo "$goodMsg."
+    exit 1
+fi
+
