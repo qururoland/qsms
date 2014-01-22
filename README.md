@@ -3,7 +3,7 @@ qsms
 
 A bash script for sending SMS messages from your Jolla phone
 
-Put the file into /usr/loca/bin.
+Put the file into /usr/local/bin.
 Make sure that it is executable.
 
 When logged in via ssh, running:
